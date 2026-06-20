@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "377370391315",
+    "project_id": "visionaptech-4893c",
+    "storage_bucket": "visionaptech-4893c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:377370391315:android:c9169720e027c2958b20e6",
+        "android_client_info": {
+          "package_name": "com.example.foodapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDzzsrPt0y1LwBN5-Atnbert0Wbwb-X4z0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
