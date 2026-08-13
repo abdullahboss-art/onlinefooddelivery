@@ -1,8 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:myapp/User_Panel/Signup.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:myapp/User_Panel/ButtomNav.dart';
-import 'package:myapp/User_Panel/home.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -12,16 +12,30 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-
   final _formKey = GlobalKey<FormState>();
-
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
-
+final GoogleSignIn _googleSignIn = GoogleSignIn();
   bool loading = false;
   bool obscurePassword = true;
+ 
 
-  // Custom Alert Dialog Function - IMPROVED VERSION
+  @override
+  void initState() {
+    super.initState();
+    
+  }
+
+  // initialize() should run exactly once, not every time the button is tapped.
+  
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
   void showAlertDialog({
     required String title,
     required String message,
@@ -110,10 +124,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  // ================= EMAIL LOGIN =================
-
   Future<void> loginUser() async {
-
     if (!_formKey.currentState!.validate()) return;
 
     try {
@@ -127,19 +138,20 @@ class _LoginPageState extends State<LoginPage> {
       final user = userCredential.user;
       final displayName = user?.displayName ?? emailController.text.trim().split('@')[0];
 
-      // Success Alert Dialog with user name
-      showAlertDialog(
-        title: "Welcome Back!",
-        message: "Login successful! 🎉",
-        isSuccess: true,
-        userName: "Welcome $displayName",
-      );
+      setState(() => loading = false);
 
+      if (mounted) {
+        showAlertDialog(
+          title: "Welcome Back!",
+          message: "Login successful! 🎉",
+          isSuccess: true,
+          userName: "Welcome $displayName",
+        );
+      }
     } on FirebaseAuthException catch (e) {
       setState(() => loading = false);
-      
+
       String errorMessage = "";
-      
       switch (e.code) {
         case 'user-not-found':
           errorMessage = "No account found with this email.\nPlease sign up first.";
@@ -159,83 +171,146 @@ class _LoginPageState extends State<LoginPage> {
         default:
           errorMessage = e.message ?? "Login failed. Please try again.";
       }
-      
-      showAlertDialog(
-        title: "Login Failed",
-        message: errorMessage,
-        isSuccess: false,
-      );
 
-    } catch (e) {
-      setState(() => loading = false);
-      
-      showAlertDialog(
-        title: "Error",
-        message: "Something went wrong.\nPlease try again later.",
-        isSuccess: false,
-      );
-    }
-  }
-
-  // ================= GOOGLE LOGIN =================
-
-  Future<void> signInWithGoogle() async {
-
-    try {
-      setState(() => loading = true);
-
-      final GoogleAuthProvider provider = GoogleAuthProvider();
-
-      provider.setCustomParameters({
-        'prompt': 'select_account',
-      });
-
-      final UserCredential userCredential =
-          await FirebaseAuth.instance.signInWithPopup(provider);
-
-      final user = userCredential.user;
-      final displayName = user?.displayName ?? "User";
-
-      print("LOGIN SUCCESS: ${user?.email}");
-
-      // Success Alert Dialog with user name
-      showAlertDialog(
-        title: "Welcome Back!",
-        message: "Successfully signed in with Google! 🎉",
-        isSuccess: true,
-        userName: "Welcome $displayName",
-      );
-
-    } catch (e) {
-      setState(() => loading = false);
-      
-      String errorMessage = "";
-      
-      if (e.toString().contains("popup-closed-by-user")) {
-        errorMessage = "Google sign-in was cancelled.\nPlease try again.";
-      } else if (e.toString().contains("network-error")) {
-        errorMessage = "Network error.\nPlease check your connection.";
-      } else {
-        errorMessage = "Google sign-in failed.\nPlease try again.";
+      if (mounted) {
+        showAlertDialog(
+          title: "Login Failed",
+          message: errorMessage,
+          isSuccess: false,
+        );
       }
-      
-      showAlertDialog(
-        title: "Google Sign-In Failed",
-        message: errorMessage,
-        isSuccess: false,
-      );
+    } catch (e) {
+      setState(() => loading = false);
+      if (mounted) {
+        showAlertDialog(
+          title: "Error",
+          message: "Something went wrong.\nPlease try again later.",
+          isSuccess: false,
+        );
+      }
     }
   }
 
+//  Future<void> signInWithGoogle() async {
+//   try {
+//     setState(() => loading = true);
+
+//     final GoogleSignIn googleSignIn = GoogleSignIn(
+//       clientId:
+//           "377370391315-1t7sorep5irhb11skre88d95ong05goa.apps.googleusercontent.com",
+//     );
+
+//     await googleSignIn.signOut();
+
+//     final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+
+//     if (googleUser == null) {
+//       setState(() => loading = false);
+//       return;
+//     }
+
+//     final GoogleSignInAuthentication googleAuth =
+//         await googleUser.authentication;
+
+//     final credential = GoogleAuthProvider.credential(
+//       accessToken: googleAuth.accessToken,
+//       idToken: googleAuth.idToken,
+//     );
+
+//     final UserCredential userCredential =
+//         await FirebaseAuth.instance.signInWithCredential(credential);
+
+//     final User? user = userCredential.user;
+
+//     setState(() => loading = false);
+
+//     if (!mounted) return;
+
+//     showAlertDialog(
+//       title: "Welcome Back!",
+//       message: "Successfully signed in with Google! 🎉",
+//       isSuccess: true,
+//       userName: user?.displayName ?? user?.email ?? "User",
+//     );
+//   } catch (e) {
+//     setState(() => loading = false);
+
+//     showAlertDialog(
+//       title: "Google Sign-In Failed",
+//       message: e.toString(),
+//       isSuccess: false,
+//     );
+//   }
+// }
+
+
+
+Future<void> signInWithGoogle() async {
+  try {
+    setState(() => loading = true);
+
+    // Optional: clear previous session
+    await _googleSignIn.signOut();
+
+    final GoogleSignInAccount? googleUser =
+        await _googleSignIn.signIn();
+
+    if (googleUser == null) {
+      setState(() => loading = false);
+      return;
+    }
+
+    final GoogleSignInAuthentication googleAuth =
+        await googleUser.authentication;
+
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    final UserCredential userCredential =
+        await FirebaseAuth.instance.signInWithCredential(credential);
+
+    final User? user = userCredential.user;
+
+    setState(() => loading = false);
+
+    if (!mounted) return;
+
+    showAlertDialog(
+      title: "Welcome Back!",
+      message: "Successfully signed in with Google! 🎉",
+      isSuccess: true,
+      userName: user?.displayName ?? user?.email ?? "User",
+    );
+  } on FirebaseAuthException catch (e) {
+    setState(() => loading = false);
+
+    if (!mounted) return;
+
+    showAlertDialog(
+      title: "Google Sign-In Failed",
+      message: e.message ?? e.code,
+      isSuccess: false,
+    );
+  } catch (e) {
+    setState(() => loading = false);
+
+    if (!mounted) return;
+
+    showAlertDialog(
+      title: "Google Sign-In Failed",
+      message: e.toString(),
+      isSuccess: false,
+    );
+  }
+}
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: Colors.black,
-
       body: Stack(
         children: [
-
           SizedBox(
             height: double.infinity,
             width: double.infinity,
@@ -244,24 +319,18 @@ class _LoginPageState extends State<LoginPage> {
               fit: BoxFit.cover,
             ),
           ),
-
           Container(
             color: Colors.black.withOpacity(0.78),
           ),
-
           SafeArea(
             child: SingleChildScrollView(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
-
                 child: Form(
                   key: _formKey,
-
                   child: Column(
                     children: [
-
                       const SizedBox(height: 100),
-
                       const Text(
                         "Welcome Back",
                         style: TextStyle(
@@ -270,9 +339,7 @@ class _LoginPageState extends State<LoginPage> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-
                       const SizedBox(height: 45),
-
                       TextFormField(
                         controller: emailController,
                         style: const TextStyle(color: Colors.white),
@@ -297,9 +364,7 @@ class _LoginPageState extends State<LoginPage> {
                           return null;
                         },
                       ),
-
                       const SizedBox(height: 20),
-
                       TextFormField(
                         controller: passwordController,
                         obscureText: obscurePassword,
@@ -310,9 +375,7 @@ class _LoginPageState extends State<LoginPage> {
                           prefixIcon: const Icon(Icons.lock, color: Colors.amber),
                           suffixIcon: IconButton(
                             icon: Icon(
-                              obscurePassword
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
+                              obscurePassword ? Icons.visibility_off : Icons.visibility,
                               color: Colors.amber,
                             ),
                             onPressed: () {
@@ -338,9 +401,7 @@ class _LoginPageState extends State<LoginPage> {
                           return null;
                         },
                       ),
-
                       const SizedBox(height: 25),
-
                       SizedBox(
                         width: double.infinity,
                         height: 55,
@@ -366,11 +427,9 @@ class _LoginPageState extends State<LoginPage> {
                                 ),
                         ),
                       ),
-
                       const SizedBox(height: 25),
-
                       GestureDetector(
-                        onTap: signInWithGoogle,
+                        onTap: loading ? null : signInWithGoogle,
                         child: Container(
                           width: double.infinity,
                           height: 55,
@@ -382,8 +441,7 @@ class _LoginPageState extends State<LoginPage> {
                           child: const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.g_mobiledata,
-                                  size: 35, color: Colors.amber),
+                              Icon(Icons.g_mobiledata, size: 35, color: Colors.amber),
                               SizedBox(width: 10),
                               Text(
                                 "Continue with Google",
@@ -396,9 +454,7 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 20),
-
                       TextButton(
                         onPressed: () {
                           Navigator.push(

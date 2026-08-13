@@ -31,7 +31,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   bool loading = false;
 
   Future<void> openWhatsApp() async {
-    const String phone = "923001234567";
+    const String phone = "03152635232";
 
     final Uri url = Uri.parse(
       "https://wa.me/$phone?text=${Uri.encodeComponent("Hello, I need help with my order.")}",

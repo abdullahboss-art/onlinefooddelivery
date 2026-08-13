@@ -61,7 +61,7 @@ class DefaultFirebaseOptions {
     iosBundleId: 'com.example.myapp',
   );
 
-  // 🍎 iOS
+  
 
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyD4NPqFVUBYyqVHFB3YXROSsNoOVyezBHg',

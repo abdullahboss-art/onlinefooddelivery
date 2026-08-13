@@ -2,14 +2,13 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("dev.flutter.flutter-gradle-plugin")
-    id("com.google.gms.google-services")
 }
 
 android {
     namespace = "com.example.myapp"
 
     compileSdk = 36
-    ndkVersion = "28.2.13676358"
+   ndkVersion = "28.2.13676358"
 
     defaultConfig {
         applicationId = "com.example.myapp"
@@ -47,6 +46,4 @@ flutter {
     source = "../.."
 }
 
-dependencies {
-    implementation("com.google.android.material:material:1.12.0")
-}
+

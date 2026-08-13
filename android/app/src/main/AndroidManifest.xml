@@ -3,6 +3,12 @@
         android:label="myapp"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        
+        <!-- ✅ YEH LINE ADD KARO - Google Sign-In ke liye -->
+        <meta-data
+            android:name="com.google.android.gms.version"
+            android:value="@integer/google_play_services_version" />
+        
         <activity
             android:name=".MainActivity"
             android:exported="true"
