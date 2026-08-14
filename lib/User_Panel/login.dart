@@ -15,7 +15,11 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
-final GoogleSignIn _googleSignIn = GoogleSignIn();
+// final GoogleSignIn _googleSignIn = GoogleSignIn();
+
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+  clientId: "377370391315-1t7sorep5irhb11skre88d95ong05goa.apps.googleusercontent.com",
+);
   bool loading = false;
   bool obscurePassword = true;
  
@@ -191,57 +195,6 @@ final GoogleSignIn _googleSignIn = GoogleSignIn();
     }
   }
 
-//  Future<void> signInWithGoogle() async {
-//   try {
-//     setState(() => loading = true);
-
-//     final GoogleSignIn googleSignIn = GoogleSignIn(
-//       clientId:
-//           "377370391315-1t7sorep5irhb11skre88d95ong05goa.apps.googleusercontent.com",
-//     );
-
-//     await googleSignIn.signOut();
-
-//     final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-
-//     if (googleUser == null) {
-//       setState(() => loading = false);
-//       return;
-//     }
-
-//     final GoogleSignInAuthentication googleAuth =
-//         await googleUser.authentication;
-
-//     final credential = GoogleAuthProvider.credential(
-//       accessToken: googleAuth.accessToken,
-//       idToken: googleAuth.idToken,
-//     );
-
-//     final UserCredential userCredential =
-//         await FirebaseAuth.instance.signInWithCredential(credential);
-
-//     final User? user = userCredential.user;
-
-//     setState(() => loading = false);
-
-//     if (!mounted) return;
-
-//     showAlertDialog(
-//       title: "Welcome Back!",
-//       message: "Successfully signed in with Google! 🎉",
-//       isSuccess: true,
-//       userName: user?.displayName ?? user?.email ?? "User",
-//     );
-//   } catch (e) {
-//     setState(() => loading = false);
-
-//     showAlertDialog(
-//       title: "Google Sign-In Failed",
-//       message: e.toString(),
-//       isSuccess: false,
-//     );
-//   }
-// }
 
 
 
