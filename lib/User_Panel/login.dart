@@ -1,15 +1,15 @@
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
-import 'package:flutter/foundation.dart';
 import 'package:myapp/User_Panel/ButtomNav.dart';
 import 'package:myapp/User_Panel/Signup.dart';
 
 class _AlomanColors {
-  static const accent = Color(0xFFF6C51A); // yellow button
-  static const fieldFill = Color(0x66141414); // translucent dark field
+  static const accent = Color(0xFFF6C51A);
+  static const fieldFill = Color(0x66141414);
   static const fieldBorder = Color(0x33FFFFFF);
   static const textSecondary = Colors.white70;
 }
@@ -23,34 +23,24 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
-  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
 
   bool loading = false;
   bool googleLoading = false;
   bool obscurePassword = true;
-  bool _googleInitialized = false;
 
   @override
-  void initState() {
-    super.initState();
-    // ✅ Initialize once when the page loads (v7+ requires this before
-    // calling signOut()/authenticate() on GoogleSignIn.instance).
-    _initGoogleSignIn();
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
   }
 
-  Future<void> _initGoogleSignIn() async {
-    try {
-      await _googleSignIn.initialize(
-        clientId:
-            "588713164437-jm1mes4sacabv34fbmm6sevaeo4ktuji.apps.googleusercontent.com",
-      );
-      _googleInitialized = true;
-    } catch (e) {
-      debugPrint("GoogleSignIn init error: $e");
-    }
-  }
+  // ============================================================
+  // ALERT DIALOG
+  // ============================================================
 
   void showAlertDialog({
     required String title,
@@ -61,7 +51,7 @@ class _LoginPageState extends State<LoginPage> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
@@ -74,7 +64,8 @@ class _LoginPageState extends State<LoginPage> {
                 children: [
                   Icon(
                     isSuccess ? Icons.check_circle : Icons.error,
-                    color: isSuccess ? _AlomanColors.accent : Colors.redAccent,
+                    color:
+                        isSuccess ? _AlomanColors.accent : Colors.redAccent,
                     size: 30,
                   ),
                   const SizedBox(width: 10),
@@ -114,18 +105,23 @@ class _LoginPageState extends State<LoginPage> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop();
-                if (isSuccess) {
+                Navigator.of(dialogContext).pop();
+
+                if (isSuccess && mounted) {
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(builder: (_) => const ButtomBar()),
+                    MaterialPageRoute(
+                      builder: (_) => const ButtomBar(),
+                    ),
                   );
                 }
               },
               style: TextButton.styleFrom(
                 foregroundColor: _AlomanColors.accent,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
               ),
               child: const Text(
                 "OK",
@@ -141,221 +137,388 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  // ============================================================
+  // EMAIL / PASSWORD LOGIN
+  // ============================================================
+
   Future<void> loginUser() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
     try {
-      setState(() => loading = true);
+      setState(() {
+        loading = true;
+      });
 
-      final userCredential =
+      final UserCredential userCredential =
           await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
       );
 
-      final user = userCredential.user;
-      final displayName =
-          user?.displayName ?? emailController.text.trim().split('@')[0];
+      final User? user = userCredential.user;
 
-      setState(() => loading = false);
+      final String displayName =
+          user?.displayName ??
+          emailController.text.trim().split('@').first;
 
-      if (mounted) {
-        showAlertDialog(
-          title: "Welcome Back!",
-          message: "Login successful! 🎉",
-          isSuccess: true,
-          userName: "Welcome $displayName",
-        );
-      }
+      if (!mounted) return;
+
+      setState(() {
+        loading = false;
+      });
+
+      showAlertDialog(
+        title: "Welcome Back!",
+        message: "Login successful! 🎉",
+        isSuccess: true,
+        userName: "Welcome $displayName",
+      );
     } on FirebaseAuthException catch (e) {
-      setState(() => loading = false);
+      if (!mounted) return;
 
-      String errorMessage = "";
+      setState(() {
+        loading = false;
+      });
+
+      String errorMessage;
+
       switch (e.code) {
         case 'user-not-found':
-          errorMessage = "No account found with this email.\nPlease sign up first.";
+          errorMessage =
+              "No account found with this email.\nPlease sign up first.";
           break;
+
         case 'wrong-password':
-          errorMessage = "Incorrect password.\nPlease try again.";
+          errorMessage =
+              "Incorrect password.\nPlease try again.";
           break;
+
+        case 'invalid-credential':
+          errorMessage =
+              "The email or password is incorrect.\nPlease try again.";
+          break;
+
         case 'invalid-email':
-          errorMessage = "Email address is not valid.";
+          errorMessage =
+              "Email address is not valid.";
           break;
+
         case 'user-disabled':
-          errorMessage = "This account has been disabled.\nPlease contact support.";
+          errorMessage =
+              "This account has been disabled.\nPlease contact support.";
           break;
+
         case 'too-many-requests':
-          errorMessage = "Too many failed attempts.\nPlease try again later.";
+          errorMessage =
+              "Too many failed attempts.\nPlease try again later.";
           break;
+
         default:
-          errorMessage = e.message ?? "Login failed. Please try again.";
+          errorMessage =
+              e.message ?? "Login failed. Please try again.";
       }
 
-      if (mounted) {
-        showAlertDialog(
-          title: "Login Failed",
-          message: errorMessage,
-          isSuccess: false,
-        );
-      }
+      showAlertDialog(
+        title: "Login Failed",
+        message: errorMessage,
+        isSuccess: false,
+      );
     } catch (e) {
-      setState(() => loading = false);
-      if (mounted) {
-        showAlertDialog(
-          title: "Error",
-          message: "Something went wrong.\nPlease try again later.",
-          isSuccess: false,
-        );
-      }
+      if (!mounted) return;
+
+      setState(() {
+        loading = false;
+      });
+
+      showAlertDialog(
+        title: "Error",
+        message:
+            "Something went wrong.\nPlease try again later.",
+        isSuccess: false,
+      );
     }
   }
 
-  // ✅ GOOGLE SIGN-IN — fixed order: initialize() BEFORE signOut()/authenticate()
+  // ============================================================
+  // GOOGLE SIGN-IN
+  // Compatible with google_sign_in 6.3.0
+  // ============================================================
+
   Future<void> signInWithGoogle() async {
+    if (googleLoading) {
+      return;
+    }
+
     try {
-      setState(() => googleLoading = true);
+      setState(() {
+        googleLoading = true;
+      });
 
-      // Flutter Web
+      // ========================================================
+      // FLUTTER WEB
+      // ========================================================
+
       if (kIsWeb) {
-        GoogleAuthProvider provider = GoogleAuthProvider();
+        final GoogleAuthProvider provider = GoogleAuthProvider();
 
-        UserCredential userCredential =
-            await FirebaseAuth.instance.signInWithPopup(provider);
+        provider.setCustomParameters({
+          'prompt': 'select_account',
+        });
 
-        User? user = userCredential.user;
+        final UserCredential userCredential =
+            await FirebaseAuth.instance.signInWithPopup(
+          provider,
+        );
 
-        setState(() => googleLoading = false);
+        final User? user = userCredential.user;
 
         if (!mounted) return;
+
+        setState(() {
+          googleLoading = false;
+        });
 
         showAlertDialog(
           title: "Welcome Back!",
           message: "Successfully signed in with Google 🎉",
           isSuccess: true,
-          userName: user?.displayName ?? user?.email ?? "User",
+          userName:
+              user?.displayName ??
+              user?.email ??
+              "User",
         );
 
         return;
       }
 
-      // Android / iOS
-      if (!_googleInitialized) {
-        await _initGoogleSignIn();
+      // ========================================================
+      // ANDROID / IOS
+      // google_sign_in 6.3.0
+      // ========================================================
+
+      final GoogleSignIn googleSignIn = GoogleSignIn();
+
+      final GoogleSignInAccount? googleUser =
+          await googleSignIn.signIn();
+
+      // User cancelled Google account selection.
+      if (googleUser == null) {
+        if (!mounted) return;
+
+        setState(() {
+          googleLoading = false;
+        });
+
+        return;
       }
 
-      await _googleSignIn.signOut();
-
-      final GoogleSignInAccount googleUser =
-          await _googleSignIn.authenticate();
-
       final GoogleSignInAuthentication googleAuth =
-          googleUser.authentication;
+          await googleUser.authentication;
 
-      final credential = GoogleAuthProvider.credential(
+      final AuthCredential credential =
+          GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      UserCredential userCredential =
-          await FirebaseAuth.instance.signInWithCredential(credential);
+      final UserCredential userCredential =
+          await FirebaseAuth.instance.signInWithCredential(
+        credential,
+      );
 
-      User? user = userCredential.user;
-
-      setState(() => googleLoading = false);
+      final User? user = userCredential.user;
 
       if (!mounted) return;
+
+      setState(() {
+        googleLoading = false;
+      });
 
       showAlertDialog(
         title: "Welcome Back!",
         message: "Successfully signed in with Google 🎉",
         isSuccess: true,
-        userName: user?.displayName ?? user?.email ?? "User",
+        userName:
+            user?.displayName ??
+            user?.email ??
+            "User",
       );
     } on FirebaseAuthException catch (e) {
-      setState(() => googleLoading = false);
+      if (!mounted) return;
+
+      setState(() {
+        googleLoading = false;
+      });
+
+      String errorMessage;
+
+      switch (e.code) {
+        case 'account-exists-with-different-credential':
+          errorMessage =
+              "An account already exists with the same email using a different sign-in method.";
+          break;
+
+        case 'popup-closed-by-user':
+          errorMessage =
+              "Google sign-in was cancelled.";
+          break;
+
+        case 'cancelled-popup-request':
+          errorMessage =
+              "Google sign-in was cancelled.";
+          break;
+
+        case 'operation-not-allowed':
+          errorMessage =
+              "Google Sign-In is not enabled in Firebase Authentication.";
+          break;
+
+        default:
+          errorMessage =
+              e.message ??
+              "Google Sign-In failed. Please try again.";
+      }
 
       showAlertDialog(
         title: "Google Sign-In Failed",
-        message: e.message ?? e.code,
+        message: errorMessage,
         isSuccess: false,
       );
     } catch (e) {
-      setState(() => googleLoading = false);
+      if (!mounted) return;
+
+      setState(() {
+        googleLoading = false;
+      });
 
       showAlertDialog(
         title: "Google Sign-In Failed",
-        message: e.toString(),
+        message:
+            "Something went wrong while signing in with Google.\n\n$e",
         isSuccess: false,
       );
     }
   }
 
-  // ✅ Forgot password — matches the "Forgot Password?" link in the design.
-  Future<void> _handleForgotPassword() async {
-    final controller = TextEditingController(text: emailController.text);
+  // ============================================================
+  // FORGOT PASSWORD
+  // ============================================================
 
-    final email = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1B1B1B),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          "Reset Password",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        content: TextField(
-          controller: controller,
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            hintText: "Enter your email",
-            hintStyle: const TextStyle(color: Colors.white54),
-            filled: true,
-            fillColor: Colors.black26,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text("Cancel", style: TextStyle(color: Colors.white54)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(controller.text),
-            child: const Text("Send Link",
-                style: TextStyle(color: _AlomanColors.accent)),
-          ),
-        ],
-      ),
+  Future<void> _handleForgotPassword() async {
+    final TextEditingController controller =
+        TextEditingController(
+      text: emailController.text.trim(),
     );
 
-    if (email == null || email.trim().isEmpty) return;
+    final String? email = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1B1B1B),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            "Reset Password",
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: TextField(
+            controller: controller,
+            keyboardType: TextInputType.emailAddress,
+            style: const TextStyle(
+              color: Colors.white,
+            ),
+            decoration: InputDecoration(
+              hintText: "Enter your email",
+              hintStyle: const TextStyle(
+                color: Colors.white54,
+              ),
+              filled: true,
+              fillColor: Colors.black26,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text(
+                "Cancel",
+                style: TextStyle(
+                  color: Colors.white54,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(
+                  controller.text.trim(),
+                );
+              },
+              child: const Text(
+                "Send Link",
+                style: TextStyle(
+                  color: _AlomanColors.accent,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    controller.dispose();
+
+    if (email == null || email.trim().isEmpty) {
+      return;
+    }
 
     try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(email: email.trim());
+      await FirebaseAuth.instance.sendPasswordResetEmail(
+        email: email.trim(),
+      );
+
       if (!mounted) return;
+
       showAlertDialog(
         title: "Email Sent",
-        message: "A password reset link has been sent to $email.",
+        message:
+            "A password reset link has been sent to ${email.trim()}.",
         isSuccess: true,
       );
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
+
       showAlertDialog(
         title: "Reset Failed",
-        message: e.message ?? "Could not send reset email.",
+        message:
+            e.message ?? "Could not send reset email.",
+        isSuccess: false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      showAlertDialog(
+        title: "Reset Failed",
+        message:
+            "Something went wrong.\nPlease try again later.",
         isSuccess: false,
       );
     }
   }
 
-  @override
-  void dispose() {
-    emailController.dispose();
-    passwordController.dispose();
-    super.dispose();
-  }
+  // ============================================================
+  // INPUT FIELD DECORATION
+  // ============================================================
 
   InputDecoration _fieldDecoration({
     required String hint,
@@ -364,30 +527,58 @@ class _LoginPageState extends State<LoginPage> {
   }) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(color: Colors.white60),
-      prefixIcon: Icon(icon, color: Colors.white70, size: 20),
+      hintStyle: const TextStyle(
+        color: Colors.white60,
+      ),
+      prefixIcon: Icon(
+        icon,
+        color: Colors.white70,
+        size: 20,
+      ),
       suffixIcon: suffixIcon,
       filled: true,
       fillColor: _AlomanColors.fieldFill,
-      contentPadding: const EdgeInsets.symmetric(vertical: 16),
+      contentPadding: const EdgeInsets.symmetric(
+        vertical: 16,
+      ),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: _AlomanColors.fieldBorder),
+        borderSide: const BorderSide(
+          color: _AlomanColors.fieldBorder,
+        ),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: _AlomanColors.fieldBorder),
+        borderSide: const BorderSide(
+          color: _AlomanColors.fieldBorder,
+        ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: _AlomanColors.accent, width: 1.4),
+        borderSide: const BorderSide(
+          color: _AlomanColors.accent,
+          width: 1.4,
+        ),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Colors.redAccent),
+        borderSide: const BorderSide(
+          color: Colors.redAccent,
+        ),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(
+          color: Colors.redAccent,
+          width: 1.4,
+        ),
       ),
     );
   }
+
+  // ============================================================
+  // BUILD UI
+  // ============================================================
 
   @override
   Widget build(BuildContext context) {
@@ -396,25 +587,37 @@ class _LoginPageState extends State<LoginPage> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // ---- Full-screen background image ----
+          // ======================================================
+          // BACKGROUND IMAGE
+          // ======================================================
+
           Image.asset(
             'images/assets/Splash.png',
             fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              // Fallback gradient if the image asset isn't found.
+            errorBuilder: (
+              context,
+              error,
+              stackTrace,
+            ) {
               return Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Color(0xFF2A2018), Color(0xFF0E0B08)],
+                    colors: [
+                      Color(0xFF2A2018),
+                      Color(0xFF0E0B08),
+                    ],
                   ),
                 ),
               );
             },
           ),
 
-          // ---- Dark overlay so text stays readable ----
+          // ======================================================
+          // DARK OVERLAY
+          // ======================================================
+
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -425,24 +628,41 @@ class _LoginPageState extends State<LoginPage> {
                   Colors.black.withOpacity(0.35),
                   Colors.black.withOpacity(0.75),
                 ],
-                stops: const [0.0, 0.45, 1.0],
+                stops: const [
+                  0.0,
+                  0.45,
+                  1.0,
+                ],
               ),
             ),
           ),
 
-          // ---- Foreground content ----
+          // ======================================================
+          // LOGIN CONTENT
+          // ======================================================
+
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 26,
+                  vertical: 8,
+                ),
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
+                  constraints: const BoxConstraints(
+                    maxWidth: 420,
+                  ),
                   child: Form(
                     key: _formKey,
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      crossAxisAlignment:
+                          CrossAxisAlignment.stretch,
                       children: [
                         const SizedBox(height: 60),
+
+                        // ==================================================
+                        // TITLE
+                        // ==================================================
 
                         const Text(
                           "Welcome Back",
@@ -453,158 +673,265 @@ class _LoginPageState extends State<LoginPage> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
+
                         const SizedBox(height: 40),
+
+                        // ==================================================
+                        // EMAIL
+                        // ==================================================
 
                         TextFormField(
                           controller: emailController,
-                          style: const TextStyle(color: Colors.white),
+                          keyboardType:
+                              TextInputType.emailAddress,
+                          textInputAction:
+                              TextInputAction.next,
+                          style: const TextStyle(
+                            color: Colors.white,
+                          ),
                           decoration: _fieldDecoration(
                             hint: "Email",
                             icon: Icons.mail_outline,
                           ),
                           validator: (value) {
-                            if (value == null || value.isEmpty) {
+                            if (value == null ||
+                                value.trim().isEmpty) {
                               return "Please enter email";
                             }
+
                             if (!value.contains("@")) {
                               return "Enter valid email";
                             }
+
                             return null;
                           },
                         ),
+
                         const SizedBox(height: 16),
+
+                        // ==================================================
+                        // PASSWORD
+                        // ==================================================
 
                         TextFormField(
                           controller: passwordController,
                           obscureText: obscurePassword,
-                          style: const TextStyle(color: Colors.white),
+                          textInputAction:
+                              TextInputAction.done,
+                          style: const TextStyle(
+                            color: Colors.white,
+                          ),
                           decoration: _fieldDecoration(
                             hint: "Password",
                             icon: Icons.lock_outline,
                             suffixIcon: IconButton(
                               icon: Icon(
                                 obscurePassword
-                                    ? Icons.visibility_off_outlined
-                                    : Icons.visibility_outlined,
+                                    ? Icons
+                                        .visibility_off_outlined
+                                    : Icons
+                                        .visibility_outlined,
                                 color: Colors.white70,
                                 size: 20,
                               ),
                               onPressed: () {
                                 setState(() {
-                                  obscurePassword = !obscurePassword;
+                                  obscurePassword =
+                                      !obscurePassword;
                                 });
                               },
                             ),
                           ),
                           validator: (value) {
-                            if (value == null || value.isEmpty) {
+                            if (value == null ||
+                                value.isEmpty) {
                               return "Please enter password";
                             }
+
                             if (value.length < 6) {
                               return "Password must be at least 6 characters";
                             }
+
                             return null;
                           },
+                          onFieldSubmitted: (_) {
+                            if (!loading) {
+                              loginUser();
+                            }
+                          },
                         ),
+
                         const SizedBox(height: 6),
 
+                        // ==================================================
+                        // FORGOT PASSWORD
+                        // ==================================================
+
                         Align(
-                          alignment: Alignment.centerRight,
+                          alignment:
+                              Alignment.centerRight,
                           child: TextButton(
-                            onPressed: _handleForgotPassword,
+                            onPressed:
+                                _handleForgotPassword,
                             child: const Text(
                               "Forgot Password?",
                               style: TextStyle(
-                                  color: _AlomanColors.textSecondary,
-                                  fontSize: 13),
+                                color:
+                                    _AlomanColors
+                                        .textSecondary,
+                                fontSize: 13,
+                              ),
                             ),
                           ),
                         ),
+
                         const SizedBox(height: 10),
+
+                        // ==================================================
+                        // LOGIN BUTTON
+                        // ==================================================
 
                         SizedBox(
                           height: 55,
                           child: ElevatedButton(
-                            onPressed: loading ? null : loginUser,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _AlomanColors.accent,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
+                            onPressed:
+                                loading
+                                    ? null
+                                    : loginUser,
+                            style:
+                                ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  _AlomanColors.accent,
+                              disabledBackgroundColor:
+                                  _AlomanColors.accent
+                                      .withOpacity(0.6),
+                              shape:
+                                  RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(
+                                  14,
+                                ),
                               ),
                               elevation: 0,
                             ),
                             child: loading
-                                ? const CircularProgressIndicator(
-                                    color: Colors.black)
+                                ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child:
+                                        CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: Colors.black,
+                                    ),
+                                  )
                                 : const Text(
                                     "LOGIN",
                                     style: TextStyle(
                                       color: Colors.black,
                                       fontSize: 16,
-                                      fontWeight: FontWeight.bold,
+                                      fontWeight:
+                                          FontWeight.bold,
                                       letterSpacing: 0.5,
                                     ),
                                   ),
                           ),
                         ),
+
                         const SizedBox(height: 16),
+
+                        // ==================================================
+                        // GOOGLE BUTTON
+                        // ==================================================
 
                         SizedBox(
                           height: 52,
                           child: OutlinedButton(
-                            onPressed: googleLoading ? null : signInWithGoogle,
-                            style: OutlinedButton.styleFrom(
-                              backgroundColor: _AlomanColors.fieldFill,
+                            onPressed:
+                                googleLoading
+                                    ? null
+                                    : signInWithGoogle,
+                            style:
+                                OutlinedButton.styleFrom(
+                              backgroundColor:
+                                  _AlomanColors.fieldFill,
                               side: const BorderSide(
-                                color: _AlomanColors.fieldBorder,
+                                color:
+                                    _AlomanColors
+                                        .fieldBorder,
                                 width: 1,
                               ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
+                              shape:
+                                  RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(
+                                  14,
+                                ),
                               ),
                             ),
                             child: googleLoading
                                 ? const SizedBox(
                                     width: 22,
                                     height: 22,
-                                    child: CircularProgressIndicator(
+                                    child:
+                                        CircularProgressIndicator(
                                       strokeWidth: 2.2,
-                                      color: _AlomanColors.accent,
+                                      color:
+                                          _AlomanColors
+                                              .accent,
                                     ),
                                   )
                                 : Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment
+                                            .center,
                                     children: [
                                       Image.asset(
                                         'images/assets/Google_logo.png',
                                         width: 20,
                                         height: 20,
                                         fit: BoxFit.contain,
-                                        errorBuilder: (context, error, stackTrace) {
+                                        errorBuilder: (
+                                          context,
+                                          error,
+                                          stackTrace,
+                                        ) {
                                           return const Text(
                                             'G',
-                                            style: TextStyle(
+                                            style:
+                                                TextStyle(
                                               fontSize: 20,
-                                              fontWeight: FontWeight.bold,
-                                              color: _AlomanColors.accent,
+                                              fontWeight:
+                                                  FontWeight
+                                                      .bold,
+                                              color:
+                                                  _AlomanColors
+                                                      .accent,
                                             ),
                                           );
                                         },
                                       ),
-                                      const SizedBox(width: 12),
+                                      const SizedBox(
+                                        width: 12,
+                                      ),
                                       const Text(
                                         "Continue with Google",
                                         style: TextStyle(
                                           color: Colors.white,
                                           fontSize: 15,
-                                          fontWeight: FontWeight.w600,
+                                          fontWeight:
+                                              FontWeight.w600,
                                         ),
                                       ),
                                     ],
                                   ),
                           ),
                         ),
+
                         const SizedBox(height: 20),
+
+                        // ==================================================
+                        // CREATE ACCOUNT
+                        // ==================================================
 
                         Center(
                           child: TextButton(
@@ -612,20 +939,24 @@ class _LoginPageState extends State<LoginPage> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => const SignupPage(),
+                                  builder: (_) =>
+                                      const SignupPage(),
                                 ),
                               );
                             },
                             child: const Text(
                               "Create Account",
                               style: TextStyle(
-                                color: _AlomanColors.accent,
+                                color:
+                                    _AlomanColors.accent,
                                 fontSize: 15,
-                                fontWeight: FontWeight.bold,
+                                fontWeight:
+                                    FontWeight.bold,
                               ),
                             ),
                           ),
                         ),
+
                         const SizedBox(height: 20),
                       ],
                     ),
