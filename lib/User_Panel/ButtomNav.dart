@@ -1,10 +1,12 @@
-
 import 'package:flutter/material.dart';
+// import 'package:myapp/User_Panel/AIChatPage.dart';
+
 import 'home.dart';
 import 'categories_page.dart';
 import 'orders_page.dart';
 import 'favorites_page.dart';
 import 'profile_page.dart';
+
 
 class ButtomBar extends StatefulWidget {
   const ButtomBar({super.key});
@@ -21,6 +23,7 @@ class _ButtomBarState extends State<ButtomBar> {
     CategoriesPage(),
     MyOrdersScreen(),
     FavoritesPage(),
+    // AIChatPage(),
     ProfilePage(),
   ];
 
@@ -42,6 +45,7 @@ class _ButtomBarState extends State<ButtomBar> {
             topRight: Radius.circular(20),
           ),
         ),
+
         child: BottomNavigationBar(
           currentIndex: currentIndex,
 
@@ -52,9 +56,11 @@ class _ButtomBarState extends State<ButtomBar> {
           },
 
           type: BottomNavigationBarType.fixed,
+
           backgroundColor: const Color(0xFF111111),
 
           selectedItemColor: const Color(0xFFFFC107),
+
           unselectedItemColor: Colors.grey,
 
           showUnselectedLabels: true,
@@ -65,21 +71,31 @@ class _ButtomBarState extends State<ButtomBar> {
               activeIcon: Icon(Icons.home),
               label: "Home",
             ),
+
             BottomNavigationBarItem(
               icon: Icon(Icons.category_outlined),
               activeIcon: Icon(Icons.category),
               label: "Categories",
             ),
+
             BottomNavigationBarItem(
               icon: Icon(Icons.receipt_long_outlined),
               activeIcon: Icon(Icons.receipt_long),
               label: "Orders",
             ),
+
             BottomNavigationBarItem(
               icon: Icon(Icons.favorite_border),
               activeIcon: Icon(Icons.favorite),
               label: "Favorites",
             ),
+
+            // BottomNavigationBarItem(
+            //   icon: Icon(Icons.smart_toy_outlined),
+            //   activeIcon: Icon(Icons.smart_toy),
+            //   label: "AI",
+            // ),
+
             BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
               activeIcon: Icon(Icons.person),
@@ -91,4 +107,3 @@ class _ButtomBarState extends State<ButtomBar> {
     );
   }
 }
-

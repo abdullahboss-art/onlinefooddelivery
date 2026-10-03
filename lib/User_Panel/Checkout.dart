@@ -9,7 +9,7 @@ class CheckoutPage extends StatefulWidget {
 
   const CheckoutPage({
     super.key,
-    required this.total,
+    required this.total, String? deliveryAddress,
   });
 
   @override

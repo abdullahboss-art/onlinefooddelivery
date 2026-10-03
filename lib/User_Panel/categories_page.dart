@@ -3,12 +3,16 @@ import 'package:flutter/material.dart';
 import 'food_detail_page.dart';
 import 'cart_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'home.dart';  // ✅ Home page import
 
 class CategoriesPage extends StatefulWidget {
   final String? initialCategory;
+  final String? initialSearch;
 
-  const CategoriesPage({super.key, this.initialCategory});
+  const CategoriesPage({
+    super.key,
+    this.initialCategory,
+    this.initialSearch,
+  });
 
   @override
   State<CategoriesPage> createState() => _CategoriesPageState();
@@ -29,11 +33,13 @@ class _CategoriesPageState extends State<CategoriesPage> {
     'Desserts',
   ];
 
-  @override
-  void initState() {
-    super.initState();
-    _selectedCategory = widget.initialCategory ?? 'All';
-  }
+ @override
+void initState() {
+  super.initState();
+
+  _selectedCategory = widget.initialCategory ?? 'All';
+  _search = widget.initialSearch ?? '';
+}
 
   @override
   void dispose() {
@@ -44,8 +50,10 @@ class _CategoriesPageState extends State<CategoriesPage> {
   int _getDiscount(String? id) {
     final n = int.tryParse(id ?? '') ?? (id?.hashCode ?? 0);
     final mod = n.abs() % 3;
+
     if (mod == 0) return 20;
     if (mod == 1) return 10;
+
     return 0;
   }
 
@@ -54,11 +62,14 @@ class _CategoriesPageState extends State<CategoriesPage> {
       final user = FirebaseAuth.instance.currentUser;
 
       if (user == null) {
+        if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Please login first"),
           ),
         );
+
         return;
       }
 
@@ -72,16 +83,19 @@ class _CategoriesPageState extends State<CategoriesPage> {
       if (existing.docs.isNotEmpty) {
         final doc = existing.docs.first;
 
-        int currentQty = (doc["quantity"] ?? 1) as int;
+        final currentQty = (doc["quantity"] ?? 1) as num;
 
         await doc.reference.update({
-          "quantity": currentQty + 1,
+          "quantity": currentQty.toInt() + 1,
         });
       } else {
         await cartRef.add({
           "userId": user.uid,
           "name": food["name"] ?? "",
-          "price": double.tryParse(food["price"].toString()) ?? 0,
+          "price": double.tryParse(
+                food["price"].toString(),
+              ) ??
+              0,
           "image": food["image"] ?? "",
           "category": food["category"] ?? "",
           "quantity": 1,
@@ -98,35 +112,50 @@ class _CategoriesPageState extends State<CategoriesPage> {
             borderRadius: BorderRadius.circular(12),
           ),
           backgroundColor: Colors.green,
-          content: Text("${food["name"]} added to cart"),
+          content: Text(
+            "${food["name"]} added to cart",
+          ),
         ),
       );
     } catch (e) {
       if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: Colors.red,
-          content: Text(e.toString()),
+          content: Text(
+            e.toString(),
+          ),
         ),
       );
     }
   }
 
   Widget _foodTile(Map<String, dynamic> food) {
-    final discount = _getDiscount(food["id"]?.toString());
-    final rating = double.tryParse(food["rating"]?.toString() ?? "") ?? 0;
+    final discount = _getDiscount(
+      food["id"]?.toString(),
+    );
+
+    final rating = double.tryParse(
+          food["rating"]?.toString() ?? "",
+        ) ??
+        0;
 
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => FoodDetailPage(food: food),
+            builder: (_) => FoodDetailPage(
+              food: food,
+            ),
           ),
         );
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
+        margin: const EdgeInsets.only(
+          bottom: 12,
+        ),
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: const Color(0xFF1E1E1E),
@@ -143,13 +172,17 @@ class _CategoriesPageState extends State<CategoriesPage> {
                     width: 70,
                     height: 70,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      width: 70,
-                      height: 70,
-                      color: const Color(0xFF2A2A2A),
-                      child: const Icon(Icons.fastfood,
-                          color: Colors.white54),
-                    ),
+                    errorBuilder: (_, __, ___) {
+                      return Container(
+                        width: 70,
+                        height: 70,
+                        color: const Color(0xFF2A2A2A),
+                        child: const Icon(
+                          Icons.fastfood,
+                          color: Colors.white54,
+                        ),
+                      );
+                    },
                   ),
                 ),
                 if (discount > 0)
@@ -158,7 +191,9 @@ class _CategoriesPageState extends State<CategoriesPage> {
                     left: 4,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.redAccent,
                         borderRadius: BorderRadius.circular(6),
@@ -191,21 +226,30 @@ class _CategoriesPageState extends State<CategoriesPage> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+
                   const SizedBox(height: 4),
+
                   if (rating > 0)
                     Row(
                       children: [
-                        const Icon(Icons.star,
-                            color: Color(0xFFFFC107), size: 13),
+                        const Icon(
+                          Icons.star,
+                          color: Color(0xFFFFC107),
+                          size: 13,
+                        ),
                         const SizedBox(width: 3),
                         Text(
                           rating.toStringAsFixed(1),
                           style: const TextStyle(
-                              color: Colors.white70, fontSize: 11),
+                            color: Colors.white70,
+                            fontSize: 11,
+                          ),
                         ),
                       ],
                     ),
+
                   const SizedBox(height: 4),
+
                   Text(
                     "Rs ${food["price"]}",
                     style: const TextStyle(
@@ -227,7 +271,10 @@ class _CategoriesPageState extends State<CategoriesPage> {
                   color: Colors.amber,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.add, color: Colors.black),
+                child: const Icon(
+                  Icons.add,
+                  color: Colors.black,
+                ),
               ),
             ),
           ],
@@ -240,29 +287,32 @@ class _CategoriesPageState extends State<CategoriesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
+
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
+
+        // BACK BUTTON
+        // Existing ButtomBar par wapas jayega.
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back,
             color: Colors.white,
           ),
           onPressed: () {
-            // ✅ Back Button - Home Page pe navigate karega
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const HomePage(),  // ✅ Home page
-              ),
-            );
+            Navigator.pop(context);
           },
         ),
+
         title: const Text(
           "Categories",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
+
         actions: [
           StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
@@ -272,13 +322,17 @@ class _CategoriesPageState extends State<CategoriesPage> {
                   isEqualTo: FirebaseAuth.instance.currentUser?.uid,
                 )
                 .snapshots(),
+
             builder: (context, snapshot) {
               int cartCount = 0;
 
               if (snapshot.hasData && snapshot.data != null) {
                 for (var doc in snapshot.data!.docs) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  cartCount += ((data["quantity"] ?? 1) as num).toInt();
+                  final data =
+                      doc.data() as Map<String, dynamic>;
+
+                  cartCount +=
+                      ((data["quantity"] ?? 1) as num).toInt();
                 }
               }
 
@@ -298,6 +352,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
                       );
                     },
                   ),
+
                   if (cartCount > 0)
                     Positioned(
                       right: 5,
@@ -329,41 +384,61 @@ class _CategoriesPageState extends State<CategoriesPage> {
           ),
         ],
       ),
+
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xff101010), Color(0xff1B1B1B)],
+            colors: [
+              Color(0xff101010),
+              Color(0xff1B1B1B),
+            ],
           ),
         ),
+
         child: SafeArea(
           child: StreamBuilder<QuerySnapshot>(
-            stream:
-                FirebaseFirestore.instance.collection("foods").snapshots(),
+            stream: FirebaseFirestore.instance
+                .collection("foods")
+                .snapshots(),
+
             builder: (context, snapshot) {
               if (!snapshot.hasData) {
                 return const Center(
-                  child:
-                      CircularProgressIndicator(color: Color(0xFFFFC107)),
+                  child: CircularProgressIndicator(
+                    color: Color(0xFFFFC107),
+                  ),
                 );
               }
 
               final allFoods = snapshot.data!.docs;
 
               final foods = allFoods.where((doc) {
-                final data = doc.data() as Map<String, dynamic>;
+                final data =
+                    doc.data() as Map<String, dynamic>;
 
-                final name = (data["name"] ?? "").toString().toLowerCase();
+                final name =
+                    (data["name"] ?? "")
+                        .toString()
+                        .toLowerCase();
+
                 final category =
-                    (data["category"] ?? "").toString().toLowerCase();
+                    (data["category"] ?? "")
+                        .toString()
+                        .toLowerCase();
 
-                final matchesSearch = name.contains(_search);
-                final matchesCategory = _selectedCategory == "All"
-                    ? true
-                    : category == _selectedCategory.toLowerCase();
+                final matchesSearch =
+                    name.contains(_search);
 
-                return matchesSearch && matchesCategory;
+                final matchesCategory =
+                    _selectedCategory == "All"
+                        ? true
+                        : category ==
+                            _selectedCategory.toLowerCase();
+
+                return matchesSearch &&
+                    matchesCategory;
               }).toList();
 
               return Row(
@@ -371,43 +446,66 @@ class _CategoriesPageState extends State<CategoriesPage> {
                   // LEFT CATEGORY
                   Container(
                     width: 90,
-                    padding: const EdgeInsets.only(top: 10),
+                    padding: const EdgeInsets.only(
+                      top: 10,
+                    ),
                     child: ListView.builder(
                       itemCount: _categories.length,
+
                       itemBuilder: (context, index) {
-                        final category = _categories[index];
-                        final isSelected = category == _selectedCategory;
+                        final category =
+                            _categories[index];
+
+                        final isSelected =
+                            category ==
+                                _selectedCategory;
 
                         return GestureDetector(
                           onTap: () {
                             setState(() {
-                              _selectedCategory = category;
+                              _selectedCategory =
+                                  category;
                             });
                           },
+
                           child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            margin: const EdgeInsets.all(6),
-                            padding: const EdgeInsets.all(10),
+                            duration: const Duration(
+                              milliseconds: 200,
+                            ),
+                            margin:
+                                const EdgeInsets.all(6),
+                            padding:
+                                const EdgeInsets.all(10),
+
                             decoration: BoxDecoration(
                               color: isSelected
                                   ? Colors.amber
-                                  : const Color(0xFF1E1E1E),
-                              borderRadius: BorderRadius.circular(12),
+                                  : const Color(
+                                      0xFF1E1E1E,
+                                    ),
+                              borderRadius:
+                                  BorderRadius.circular(12),
+
                               boxShadow: isSelected
                                   ? [
                                       BoxShadow(
                                         color: Colors.amber
-                                            .withOpacity(0.35),
+                                            .withOpacity(
+                                          0.35,
+                                        ),
                                         blurRadius: 10,
                                         spreadRadius: 1,
                                       ),
                                     ]
                                   : [],
                             ),
+
                             child: Center(
                               child: Text(
                                 category,
-                                textAlign: TextAlign.center,
+                                textAlign:
+                                    TextAlign.center,
+
                                 style: TextStyle(
                                   color: isSelected
                                       ? Colors.black
@@ -430,26 +528,54 @@ class _CategoriesPageState extends State<CategoriesPage> {
                     child: Column(
                       children: [
                         Padding(
-                          padding: const EdgeInsets.all(12),
+                          padding:
+                              const EdgeInsets.all(12),
+
                           child: TextField(
-                            controller: _searchController,
+                            controller:
+                                _searchController,
+
                             onChanged: (value) {
                               setState(() {
-                                _search = value.toLowerCase();
+                                _search =
+                                    value.toLowerCase();
                               });
                             },
-                            style: const TextStyle(color: Colors.white),
-                            decoration: InputDecoration(
-                              hintText: "Search food...",
+
+                            style: const TextStyle(
+                              color: Colors.white,
+                            ),
+
+                            decoration:
+                                InputDecoration(
+                              hintText:
+                                  "Search food...",
+
                               hintStyle:
-                                  const TextStyle(color: Colors.white54),
-                              prefixIcon: const Icon(Icons.search,
-                                  color: Colors.white),
+                                  const TextStyle(
+                                color: Colors.white54,
+                              ),
+
+                              prefixIcon:
+                                  const Icon(
+                                Icons.search,
+                                color: Colors.white,
+                              ),
+
                               filled: true,
-                              fillColor: const Color(0xFF1E1E1E),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(14),
-                                borderSide: BorderSide.none,
+
+                              fillColor:
+                                  const Color(
+                                0xFF1E1E1E,
+                              ),
+
+                              border:
+                                  OutlineInputBorder(
+                                borderRadius:
+                                    BorderRadius
+                                        .circular(14),
+                                borderSide:
+                                    BorderSide.none,
                               ),
                             ),
                           ),
@@ -461,18 +587,37 @@ class _CategoriesPageState extends State<CategoriesPage> {
                                   child: Text(
                                     "No food items found",
                                     style: TextStyle(
-                                        color: Colors.grey.shade500),
+                                      color: Colors
+                                          .grey
+                                          .shade500,
+                                    ),
                                   ),
                                 )
                               : ListView.builder(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12),
-                                  itemCount: foods.length,
-                                  itemBuilder: (context, index) {
-                                    final data = foods[index].data()
-                                        as Map<String, dynamic>;
-                                    data["id"] = foods[index].id;
-                                    return _foodTile(data);
+                                  padding:
+                                      const EdgeInsets
+                                          .symmetric(
+                                    horizontal: 12,
+                                  ),
+
+                                  itemCount:
+                                      foods.length,
+
+                                  itemBuilder:
+                                      (context, index) {
+                                    final data =
+                                        foods[index]
+                                                .data()
+                                            as Map<
+                                                String,
+                                                dynamic>;
+
+                                    data["id"] =
+                                        foods[index].id;
+
+                                    return _foodTile(
+                                      data,
+                                    );
                                   },
                                 ),
                         ),
